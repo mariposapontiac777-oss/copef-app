@@ -109,7 +109,7 @@ export default function App() {
   const [boletaActiva, setBoletaActiva] = useState(null);
   const [campana, setCampana] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+ // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -121,7 +121,7 @@ export default function App() {
       else { setRol(null); setCargando(false); }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [verificarRol]);
 
   async function verificarRol(email) {
     const { data } = await supabase
