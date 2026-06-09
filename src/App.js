@@ -109,6 +109,7 @@ export default function App() {
   const [boletaActiva, setBoletaActiva] = useState(null);
   const [campana, setCampana] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
