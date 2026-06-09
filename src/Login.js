@@ -1,4 +1,21 @@
+import { useState } from 'react'
+import { supabase } from './supabase'
 
+const PROVINCIAS = [
+  'Salta', 'Buenos Aires', 'Cordoba', 'Santa Fe', 'Mendoza',
+  'Tucuman', 'Entre Rios', 'Chaco', 'Corrientes', 'Misiones',
+  'Santiago del Estero', 'San Juan', 'Jujuy', 'Rio Negro',
+  'Neuquen', 'Formosa', 'Chubut', 'San Luis', 'Catamarca',
+  'La Rioja', 'La Pampa', 'Santa Cruz', 'Tierra del Fuego'
+]
+
+const LOCALIDADES_SALTA = [
+  'Salta Capital', 'Oran', 'Tartagal', 'General Guemes',
+  'Rosario de la Frontera', 'Metan', 'Joaquin V. Gonzalez',
+  'Embarcacion', 'Cafayate', 'Cachi', 'Iruya', 'Rivadavia', 'Otro'
+]
+
+const inputStyle = {
   width: '100%',
   padding: '9px 12px',
   border: '1.5px solid rgba(0,0,0,0.1)',
