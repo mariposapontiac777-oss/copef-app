@@ -1,21 +1,4 @@
-import { useState } from 'react'
-import { supabase } from './supabase'
 
-const PROVINCIAS = [
-  'Salta', 'Buenos Aires', 'Córdoba', 'Santa Fe', 'Mendoza',
-  'Tucumán', 'Entre Ríos', 'Chaco', 'Corrientes', 'Misiones',
-  'Santiago del Estero', 'San Juan', 'Jujuy', 'Río Negro',
-  'Neuquén', 'Formosa', 'Chubut', 'San Luis', 'Catamarca',
-  'La Rioja', 'La Pampa', 'Santa Cruz', 'Tierra del Fuego'
-]
-
-const LOCALIDADES_SALTA = [
-  'Salta Capital', 'Orán', 'Tartagal', 'General Güemes',
-  'Rosario de la Frontera', 'Metán', 'Joaquín V. González',
-  'Embarcación', 'Cafayate', 'Cachi', 'Iruya', 'Rivadavia', 'Otro'
-]
-
-const inputStyle = {
   width: '100%',
   padding: '9px 12px',
   border: '1.5px solid rgba(0,0,0,0.1)',
@@ -73,20 +56,39 @@ export default function Login() {
       return
     }
     setCargando(true)
-    const { error } = await supabase.auth.signUp({
+
+    const { error: authError } = await supabase.auth.signUp({
       email: regData.email,
-      password: regData.password,
-      options: {
-        data: {
-          nombre: regData.nombre, apellido: regData.apellido,
-          dni: regData.dni, matricula: regData.matricula,
-          domicilio: regData.domicilio, localidad: regData.localidad,
-          provincia: regData.provincia
-        }
-      }
+      password: regData.password
     })
-    if (error) setError(error.message)
-    else setMensaje('Registro exitoso. Tu cuenta sera revisada y aprobada en breve.')
+
+    if (authError) {
+      setError(authError.message)
+      setCargando(false)
+      return
+    }
+
+    const { error: dbError } = await supabase
+      .from('solicitudes_registro')
+      .insert({
+        nombre: regData.nombre,
+        apellido: regData.apellido,
+        dni: regData.dni,
+        matricula: regData.matricula,
+        email: regData.email,
+        domicilio: regData.domicilio,
+        localidad: regData.localidad,
+        provincia: regData.provincia,
+        estado: 'pendiente'
+      })
+
+    if (dbError) {
+      setError('Error al guardar los datos. Intenta de nuevo.')
+      setCargando(false)
+      return
+    }
+
+    setMensaje('Solicitud enviada correctamente. Tu cuenta sera revisada y aprobada en breve. Recibirás un email cuando este habilitada.')
     setCargando(false)
   }
 
@@ -107,11 +109,11 @@ export default function Login() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
           <button onClick={() => { setModo('login'); setError(''); setMensaje(''); }}
-            style={{ padding: 9, borderRadius: 8, border: `2px solid ${modo === 'login' ? '#C00000' : 'rgba(0,0,0,0.1)'}`, background: modo === 'login' ? '#FCEBEB' : '#fff', color: modo === 'login' ? '#C00000' : '#666', fontWeight: modo === 'login' ? 600 : 400, cursor: 'pointer', fontSize: 13 }}>
+            style={{ padding: 9, borderRadius: 8, border: '2px solid ' + (modo === 'login' ? '#C00000' : 'rgba(0,0,0,0.1)'), background: modo === 'login' ? '#FCEBEB' : '#fff', color: modo === 'login' ? '#C00000' : '#666', fontWeight: modo === 'login' ? 600 : 400, cursor: 'pointer', fontSize: 13 }}>
             Ingresar
           </button>
           <button onClick={() => { setModo('registro'); setError(''); setMensaje(''); }}
-            style={{ padding: 9, borderRadius: 8, border: `2px solid ${modo === 'registro' ? '#C00000' : 'rgba(0,0,0,0.1)'}`, background: modo === 'registro' ? '#FCEBEB' : '#fff', color: modo === 'registro' ? '#C00000' : '#666', fontWeight: modo === 'registro' ? 600 : 400, cursor: 'pointer', fontSize: 13 }}>
+            style={{ padding: 9, borderRadius: 8, border: '2px solid ' + (modo === 'registro' ? '#C00000' : 'rgba(0,0,0,0.1)'), background: modo === 'registro' ? '#FCEBEB' : '#fff', color: modo === 'registro' ? '#C00000' : '#666', fontWeight: modo === 'registro' ? 600 : 400, cursor: 'pointer', fontSize: 13 }}>
             Registrarse
           </button>
         </div>
@@ -199,14 +201,14 @@ export default function Login() {
             {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{error}</div>}
             <button onClick={handleRegistro} disabled={cargando}
               style={{ width: '100%', padding: 12, background: '#C00000', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-              {cargando ? 'Registrando...' : 'Enviar solicitud de registro'}
+              {cargando ? 'Enviando solicitud...' : 'Enviar solicitud de registro'}
             </button>
           </>
         )}
 
         {mensaje && (
           <div style={{ textAlign: 'center', padding: 16 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>checkmark</div>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>ok</div>
             <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, color: '#3B6D11' }}>Solicitud enviada</div>
             <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{mensaje}</div>
             <button onClick={() => { setModo('login'); setMensaje(''); }}
