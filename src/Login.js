@@ -36,7 +36,7 @@ const labelStyle = {
   letterSpacing: '0.04em'
 }
 
-const dniToEmail = (dni) => dni + '@copef.internal'
+const dniToEmail = (dni) => dni + '@copef.com.ar'
 
 export default function Login() {
   const [modo, setModo] = useState('login')
