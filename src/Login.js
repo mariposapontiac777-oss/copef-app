@@ -43,9 +43,8 @@ export default function Login() {
   const [cargando, setCargando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
-  const [loginData, setLoginData] = useState({ dni: '', password: '' }
-    const [captchaToken, setCaptchaToken] = useState('')
-  )
+  const [loginData, setLoginData] = useState({ dni: '', password: '' })
+  const [captchaToken, setCaptchaToken] = useState('');
   const [regData, setRegData] = useState({
     nombre: '', apellido: '', dni: '', matricula: '',
     email: '', password: '', password2: '',

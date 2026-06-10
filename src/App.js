@@ -142,11 +142,15 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [verificarRol]);
 
-  async function cargarMatriculados() {
-    const { data } = await supabase.from('matriculados').select('*').order('apellido');
-    setMatriculados(data || []);
-    setCargando(false);
-  }
+async function cargarMatriculados() {
+  const { data } = await supabase
+    .from('matriculados')
+    .select('*')
+    .order('apellido')
+    .range(0, 99);
+  setMatriculados(data || []);
+  setCargando(false);
+}
 
   async function cargarPendientes() {
     const { data } = await supabase
