@@ -36,12 +36,14 @@ const labelStyle = {
   letterSpacing: '0.04em'
 }
 
+const dniToEmail = (dni) => dni + '@copef.internal'
+
 export default function Login() {
   const [modo, setModo] = useState('login')
   const [cargando, setCargando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
-  const [loginData, setLoginData] = useState({ email: '', password: '' })
+  const [loginData, setLoginData] = useState({ dni: '', password: '' })
   const [regData, setRegData] = useState({
     nombre: '', apellido: '', dni: '', matricula: '',
     email: '', password: '', password2: '',
@@ -51,16 +53,22 @@ export default function Login() {
   async function handleLogin() {
     setCargando(true)
     setError('')
+    if (!loginData.dni || !loginData.password) {
+      setError('Ingresa tu DNI y contrasena')
+      setCargando(false)
+      return
+    }
+    const email = dniToEmail(loginData.dni.trim())
     const { error } = await supabase.auth.signInWithPassword({
-      email: loginData.email, password: loginData.password
+      email, password: loginData.password
     })
-    if (error) setError('Email o contrasena incorrectos')
+    if (error) setError('DNI o contrasena incorrectos')
     setCargando(false)
   }
 
   async function handleRegistro() {
     setError('')
-    if (!regData.nombre || !regData.apellido || !regData.dni || !regData.matricula || !regData.email || !regData.password) {
+    if (!regData.nombre || !regData.apellido || !regData.dni || !regData.matricula || !regData.password) {
       setError('Por favor completa todos los campos obligatorios')
       return
     }
@@ -74,13 +82,19 @@ export default function Login() {
     }
     setCargando(true)
 
+    const emailInterno = dniToEmail(regData.dni.trim())
+
     const { error: authError } = await supabase.auth.signUp({
-      email: regData.email,
+      email: emailInterno,
       password: regData.password
     })
 
     if (authError) {
-      setError(authError.message)
+      if (authError.message.includes('already registered')) {
+        setError('Ya existe una cuenta con ese DNI')
+      } else {
+        setError(authError.message)
+      }
       setCargando(false)
       return
     }
@@ -92,7 +106,7 @@ export default function Login() {
         apellido: regData.apellido,
         dni: regData.dni,
         matricula: regData.matricula,
-        email: regData.email,
+        email: regData.email || emailInterno,
         domicilio: regData.domicilio,
         localidad: regData.localidad,
         provincia: regData.provincia,
@@ -105,12 +119,8 @@ export default function Login() {
       return
     }
 
-    setMensaje('Solicitud enviada correctamente. Tu cuenta sera revisada y aprobada en breve. Recibirás un email cuando este habilitada.')
+    setMensaje('Solicitud enviada correctamente. Tu cuenta sera revisada y aprobada en breve.')
     setCargando(false)
-  }
-
-  async function loginGoogle() {
-    await supabase.auth.signInWithOAuth({ provider: 'google' })
   }
 
   const updateReg = (field, value) => setRegData(prev => ({ ...prev, [field]: value }))
@@ -137,23 +147,24 @@ export default function Login() {
 
         {modo === 'login' && (
           <>
+            <div style={{ background: '#E6F1FB', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#185FA5', marginBottom: 14 }}>
+              Ingresa con tu numero de DNI y tu contrasena
+            </div>
             <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Email</label>
-              <input value={loginData.email} onChange={e => setLoginData(p => ({ ...p, email: e.target.value }))} style={inputStyle} placeholder="tu@email.com" type="email" />
+              <label style={labelStyle}>Numero de DNI</label>
+              <input value={loginData.dni} onChange={e => setLoginData(p => ({ ...p, dni: e.target.value }))}
+                style={inputStyle} placeholder="12345678" type="number" />
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Contrasena</label>
-              <input value={loginData.password} onChange={e => setLoginData(p => ({ ...p, password: e.target.value }))} style={inputStyle} placeholder="password" type="password" />
+              <input value={loginData.password} onChange={e => setLoginData(p => ({ ...p, password: e.target.value }))}
+                style={inputStyle} placeholder="contrasena" type="password"
+                onKeyDown={e => e.key === 'Enter' && handleLogin()} />
             </div>
             {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{error}</div>}
             <button onClick={handleLogin} disabled={cargando}
-              style={{ width: '100%', padding: 12, background: '#C00000', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 10 }}>
+              style={{ width: '100%', padding: 12, background: '#C00000', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               {cargando ? 'Cargando...' : 'Ingresar'}
-            </button>
-            <div style={{ textAlign: 'center', color: '#888', fontSize: 12, marginBottom: 10 }}>o</div>
-            <button onClick={loginGoogle}
-              style={{ width: '100%', padding: 10, background: '#fff', color: '#333', border: '1.5px solid rgba(0,0,0,0.15)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <span style={{ fontSize: 15 }}>G</span> Continuar con Google
             </button>
           </>
         )}
@@ -161,7 +172,7 @@ export default function Login() {
         {modo === 'registro' && !mensaje && (
           <>
             <div style={{ background: '#E6F1FB', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#185FA5', marginBottom: 14 }}>
-              Completa todos los datos. Tu cuenta sera aprobada por la administracion del COPEF.
+              Completa todos los datos. Tu DNI sera tu usuario para ingresar al sistema.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               <div>
@@ -175,7 +186,7 @@ export default function Login() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               <div>
-                <label style={labelStyle}>DNI *</label>
+                <label style={labelStyle}>DNI * (sera tu usuario)</label>
                 <input value={regData.dni} onChange={e => updateReg('dni', e.target.value)} style={inputStyle} placeholder="12345678" type="number" />
               </div>
               <div>
@@ -184,7 +195,7 @@ export default function Login() {
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
-              <label style={labelStyle}>Email *</label>
+              <label style={labelStyle}>Email de contacto (opcional)</label>
               <input value={regData.email} onChange={e => updateReg('email', e.target.value)} style={inputStyle} placeholder="tu@email.com" type="email" />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -218,7 +229,7 @@ export default function Login() {
             {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{error}</div>}
             <button onClick={handleRegistro} disabled={cargando}
               style={{ width: '100%', padding: 12, background: '#C00000', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-              {cargando ? 'Enviando solicitud...' : 'Enviar solicitud de registro'}
+              {cargando ? 'Enviando...' : 'Enviar solicitud de registro'}
             </button>
           </>
         )}
