@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
-
+import { Turnstile } from '@marsidev/react-turnstile'
 const PROVINCIAS = [
   'Salta', 'Buenos Aires', 'Cordoba', 'Santa Fe', 'Mendoza',
   'Tucuman', 'Entre Rios', 'Chaco', 'Corrientes', 'Misiones',
@@ -43,7 +43,9 @@ export default function Login() {
   const [cargando, setCargando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
-  const [loginData, setLoginData] = useState({ dni: '', password: '' })
+  const [loginData, setLoginData] = useState({ dni: '', password: '' }
+    const [captchaToken, setCaptchaToken] = useState('')
+  )
   const [regData, setRegData] = useState({
     nombre: '', apellido: '', dni: '', matricula: '',
     email: '', password: '', password2: '',
@@ -53,6 +55,16 @@ export default function Login() {
   async function handleLogin() {
     setCargando(true)
     setError('')
+    if (!captchaToken) {
+  setError('Por favor completá la verificación de seguridad')
+  setCargando(false)
+  return
+}
+if (!captchaToken) {
+  setError('Por favor completá la verificación de seguridad')
+  setCargando(false)
+  return
+}
     if (!loginData.dni || !loginData.password) {
       setError('Ingresa tu DNI y contrasena')
       setCargando(false)
@@ -68,6 +80,10 @@ export default function Login() {
 
   async function handleRegistro() {
     setError('')
+    if (!captchaToken) {
+  setError('Por favor completá la verificación de seguridad')
+  return
+}
     if (!regData.nombre || !regData.apellido || !regData.dni || !regData.matricula || !regData.password) {
       setError('Por favor completa todos los campos obligatorios')
       return
@@ -161,6 +177,12 @@ export default function Login() {
                 style={inputStyle} placeholder="contrasena" type="password"
                 onKeyDown={e => e.key === 'Enter' && handleLogin()} />
             </div>
+            <Turnstile
+  siteKey={process.env.REACT_APP_TURNSTILE_SITE_KEY}
+  onSuccess={(token) => setCaptchaToken(token)}
+  onExpire={() => setCaptchaToken('')}
+  options={{ theme: 'light', language: 'es' }}
+/>
             {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{error}</div>}
             <button onClick={handleLogin} disabled={cargando}
               style={{ width: '100%', padding: 12, background: '#C00000', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
@@ -226,6 +248,12 @@ export default function Login() {
                 </select>
               </div>
             </div>
+            <Turnstile
+  siteKey={process.env.REACT_APP_TURNSTILE_SITE_KEY}
+  onSuccess={(token) => setCaptchaToken(token)}
+  onExpire={() => setCaptchaToken('')}
+  options={{ theme: 'light', language: 'es' }}
+/>
             {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{error}</div>}
             <button onClick={handleRegistro} disabled={cargando}
               style={{ width: '100%', padding: 12, background: '#C00000', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
