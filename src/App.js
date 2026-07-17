@@ -111,6 +111,7 @@ export default function App() {
   const [campana, setCampana] = useState(false);
   const [pestana, setPestana] = useState("matriculados");
   const [mensaje, setMensaje] = useState("");
+  const [stats, setStats] = useState({ total: 0, morosos: 0, alDia: 0, totalDeuda: 0 });
 
   const verificarRol = useCallback(async (email) => {
     const { data } = await supabase
@@ -121,6 +122,7 @@ export default function App() {
     if (data) {
       setRol(data.rol);
       cargarMatriculados();
+      cargarStats();
       if (data.rol === 'superadmin') cargarPendientes();
     } else {
       setRol('pendiente');
@@ -150,6 +152,30 @@ async function cargarMatriculados() {
     .range(0, 99);
   setMatriculados(data || []);
   setCargando(false);
+}
+
+async function cargarStats() {
+  const { count: total } = await supabase
+    .from('matriculados')
+    .select('*', { count: 'exact', head: true });
+
+  const { count: morosos } = await supabase
+    .from('matriculados')
+    .select('*', { count: 'exact', head: true })
+    .gt('meses_deuda', 0);
+
+  const { count: alDia } = await supabase
+    .from('matriculados')
+    .select('*', { count: 'exact', head: true })
+    .eq('meses_deuda', 0);
+
+  const { data: deudaData } = await supabase
+    .from('matriculados')
+    .select('cuota_mensual, meses_deuda');
+
+  const totalDeuda = (deudaData || []).reduce((a, m) => a + m.cuota_mensual * m.meses_deuda, 0);
+
+  setStats({ total: total || 0, morosos: morosos || 0, alDia: alDia || 0, totalDeuda });
 }
 
   async function cargarPendientes() {
@@ -245,10 +271,10 @@ async function cargarMatriculados() {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 14 }}>
               {[
-                ['MATRICULADOS', matriculados.length, '#333'],
-                ['MOROSOS', morosos, '#C00000'],
-                ['AL DIA', alDia, '#3B6D11'],
-                ['DEUDA TOTAL', fmt(totalDeuda), '#C00000'],
+                ['MATRICULADOS', stats.total, '#333'],
+                ['MOROSOS', stats.morosos, '#C00000'],
+                ['AL DIA', stats.alDia, '#3B6D11'],
+                ['DEUDA TOTAL', fmt(stats.totalDeuda), '#C00000'],
               ].map(([label, val, color]) => (
                 <div key={label} style={{ background: '#fff', borderRadius: 10, padding: 14, border: '0.5px solid rgba(0,0,0,0.08)', textAlign: 'center' }}>
                   <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>{label}</div>
@@ -261,7 +287,7 @@ async function cargarMatriculados() {
               <div style={{ background: campana ? '#EAF3DE' : '#FFF8F0', border: '1px solid ' + (campana ? '#3B6D11' : '#F0C080'), borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{campana ? 'Boletas enviadas' : 'Campana masiva de recupero'}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>{campana ? 'Enviadas por WhatsApp y email' : 'Enviar boleta a los ' + morosos + ' morosos'}</div>
+                  <div style={{ fontSize: 12, color: '#666' }}>{campana ? 'Enviadas por WhatsApp y email' : 'Enviar boleta a los ' + stats.morosos + ' morosos'}</div>
                 </div>
                 <button onClick={() => { setCampana(true); setTimeout(() => setCampana(false), 3000); }}
                   style={{ background: campana ? '#3B6D11' : '#C00000', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
