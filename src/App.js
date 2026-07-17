@@ -112,6 +112,8 @@ export default function App() {
   const [pestana, setPestana] = useState("matriculados");
   const [mensaje, setMensaje] = useState("");
   const [stats, setStats] = useState({ total: 0, morosos: 0, alDia: 0, totalDeuda: 0 });
+  const [resultadosBusqueda, setResultadosBusqueda] = useState(null);
+  const [buscando, setBuscando] = useState(false);
 
   const verificarRol = useCallback(async (email) => {
     const { data } = await supabase
@@ -208,6 +210,31 @@ async function cargarStats() {
 
   const cerrarSesion = () => supabase.auth.signOut();
 
+  useEffect(() => {
+    if (!busqueda.trim() && filtro === 'todos') {
+      setResultadosBusqueda(null);
+      return;
+    }
+    setBuscando(true);
+    const timer = setTimeout(async () => {
+      let query = supabase
+        .from('matriculados')
+        .select('*')
+        .order('apellido')
+        .limit(100);
+      if (busqueda.trim()) {
+        const q = busqueda.trim();
+        query = query.or(`apellido.ilike.%${q}%,nombre.ilike.%${q}%,matricula.ilike.%${q}%,dni.ilike.%${q}%`);
+      }
+      if (filtro === 'morosos') query = query.gt('meses_deuda', 0);
+      if (filtro === 'al_dia') query = query.eq('meses_deuda', 0);
+      const { data } = await query;
+      setResultadosBusqueda(data || []);
+      setBuscando(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [busqueda, filtro]);
+
   if (!session) return <Login />;
   if (cargando) return <div style={{ padding: 40, textAlign: 'center', fontFamily: 'sans-serif' }}>Cargando...</div>;
 
@@ -222,12 +249,7 @@ async function cargarStats() {
     </div>
   );
 
-  const filtrados = matriculados.filter(m => {
-    const q = busqueda.toLowerCase();
-    const matchQ = m.nombre.toLowerCase().includes(q) || m.apellido.toLowerCase().includes(q) || m.matricula.includes(q);
-    const matchF = filtro === 'todos' ? true : filtro === 'morosos' ? m.meses_deuda > 0 : m.meses_deuda === 0;
-    return matchQ && matchF;
-  });
+  const filtrados = resultadosBusqueda !== null ? resultadosBusqueda : matriculados;
 
   const totalDeuda = matriculados.reduce((a, m) => a + m.cuota_mensual * m.meses_deuda, 0);
   const morosos = matriculados.filter(m => m.meses_deuda > 0).length;
@@ -298,7 +320,7 @@ async function cargarStats() {
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
               <input style={{ flex: 1, padding: '9px 12px', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, fontSize: 13 }}
-                placeholder="Buscar por nombre o matricula..."
+                placeholder={buscando ? "Buscando..." : "Buscar por nombre, matrícula o DNI..."}
                 value={busqueda} onChange={e => setBusqueda(e.target.value)} />
               <select style={{ padding: '9px 12px', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, fontSize: 13, background: '#fff' }}
                 value={filtro} onChange={e => setFiltro(e.target.value)}>
